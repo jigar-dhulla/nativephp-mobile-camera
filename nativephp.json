@@ -1,0 +1,63 @@
+{
+    "namespace": "Camera",
+
+    "bridge_functions": [
+        {
+            "name": "Camera.GetPhoto",
+            "android": "com.nativephp.camera.CameraFunctions.GetPhoto",
+            "ios": "CameraFunctions.GetPhoto",
+            "description": "Capture a photo with the device camera"
+        },
+        {
+            "name": "Camera.RecordVideo",
+            "android": "com.nativephp.camera.CameraFunctions.RecordVideo",
+            "ios": "CameraFunctions.RecordVideo",
+            "description": "Record a video with the device camera"
+        },
+        {
+            "name": "Camera.PickMedia",
+            "android": "com.nativephp.camera.GalleryFunctions.PickMedia",
+            "ios": "CameraFunctions.PickMedia",
+            "description": "Pick media from the device gallery"
+        }
+    ],
+
+    "android": {
+        "permissions": [
+            "android.permission.CAMERA",
+            "android.permission.RECORD_AUDIO",
+            "android.permission.FOREGROUND_SERVICE",
+            "android.permission.FOREGROUND_SERVICE_SHORT_SERVICE"
+        ],
+        "dependencies": {
+            "implementation": []
+        },
+        "services": [
+            {
+                "name": ".CameraForegroundService",
+                "foregroundServiceType": "shortService",
+                "exported": false
+            }
+        ]
+    },
+
+    "ios": {
+        "info_plist": {
+            "NSCameraUsageDescription": "This app requires camera access to take photos and videos.",
+            "NSMicrophoneUsageDescription": "This app requires microphone access to record video with audio.",
+            "NSPhotoLibraryUsageDescription": "This app requires photo library access to select media."
+        },
+        "dependencies": {
+            "swift_packages": [],
+            "pods": []
+        }
+    },
+
+    "events": [
+        "NativePHP\\Camera\\Events\\PhotoTaken",
+        "NativePHP\\Camera\\Events\\PhotoCancelled",
+        "NativePHP\\Camera\\Events\\VideoRecorded",
+        "NativePHP\\Camera\\Events\\VideoCancelled",
+        "NativePHP\\Camera\\Events\\MediaSelected"
+    ]
+}
