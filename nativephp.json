@@ -54,10 +54,10 @@
     },
 
     "events": [
-        "NativePHP\\Camera\\Events\\PhotoTaken",
-        "NativePHP\\Camera\\Events\\PhotoCancelled",
-        "NativePHP\\Camera\\Events\\VideoRecorded",
-        "NativePHP\\Camera\\Events\\VideoCancelled",
-        "NativePHP\\Camera\\Events\\MediaSelected"
+        "Native\\Mobile\\Events\\Camera\\PhotoTaken",
+        "Native\\Mobile\\Events\\Camera\\PhotoCancelled",
+        "Native\\Mobile\\Events\\Camera\\VideoRecorded",
+        "Native\\Mobile\\Events\\Camera\\VideoCancelled",
+        "Native\\Mobile\\Events\\Camera\\MediaSelected"
     ]
 }
