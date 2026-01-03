@@ -1,21 +1,15 @@
 # Camera Plugin for NativePHP Mobile
 
-Camera plugin for NativePHP Mobile (Photo capture, Video recording, Gallery picker).
+Camera plugin for NativePHP Mobile providing photo capture, video recording, and gallery picker functionality.
+
+## Overview
+
+The Camera API provides access to the device's camera for taking photos, recording videos, and selecting media from the gallery.
 
 ## Installation
 
 ```bash
-# Install the package
-composer require nativephp/camera
-
-# Publish the plugins provider (first time only)
-php artisan vendor:publish --tag=nativephp-plugins-provider
-
-# Register the plugin
-php artisan native:plugin:register nativephp/camera
-
-# Verify registration
-php artisan native:plugin:list
+composer require nativephp/mobile-camera
 ```
 
 ## Usage
@@ -23,56 +17,162 @@ php artisan native:plugin:list
 ### PHP (Livewire/Blade)
 
 ```php
-use NativePHP\Camera\Facades\Camera;
+use Native\Mobile\Facades\Camera;
 
-// Capture a photo
-Camera::getPhoto()->start();
+// Take a photo
+Camera::getPhoto();
 
 // Record a video
-Camera::recordVideo()->maxDuration(30)->start();
+Camera::recordVideo();
+
+// Record with max duration
+Camera::recordVideo(['maxDuration' => 30]);
+
+// Using fluent API
+Camera::recordVideo()
+    ->maxDuration(60)
+    ->id('my-video-123')
+    ->start();
 
 // Pick images from gallery
-Camera::pickImages('image', true, 5)->start();
+Camera::pickImages('images', false);  // Single image
+Camera::pickImages('images', true);   // Multiple images
+Camera::pickImages('all', true);      // Any media type
 ```
 
-### With Event Correlation
+### JavaScript (Vue/React/Inertia)
 
-```php
-// Capture with ID for event correlation
-$capture = Camera::getPhoto()->id('my-photo');
-$id = $capture->getId(); // Store for later comparison
-$capture->start();
+```js
+import { camera, on, off, Events } from '#nativephp';
 
-// In event handler
-#[OnNative(PhotoTaken::class)]
-public function handlePhoto($path, $mimeType, $id)
-{
-    if ($id === session('expected_photo_id')) {
-        // Handle this specific photo
-    }
-}
+// Take a photo
+await camera.getPhoto();
+
+// With identifier for tracking
+await camera.getPhoto()
+    .id('profile-pic');
+
+// Record video
+await camera.recordVideo()
+    .maxDuration(60);
+
+// Pick images
+await camera.pickImages()
+    .images()
+    .multiple()
+    .maxItems(5);
 ```
 
 ## Events
 
-- `NativePHP\Camera\Events\PhotoTaken` - Photo captured successfully
-- `NativePHP\Camera\Events\PhotoCancelled` - Photo capture cancelled
-- `NativePHP\Camera\Events\VideoRecorded` - Video recorded successfully
-- `NativePHP\Camera\Events\VideoCancelled` - Video recording cancelled
-- `NativePHP\Camera\Events\MediaSelected` - Media selected from gallery
+### `PhotoTaken`
 
-## Listening for Events
+Fired when a photo is taken with the camera.
+
+#### PHP
 
 ```php
-use Livewire\Attributes\On;
-use NativePHP\Camera\Events\PhotoTaken;
+use Native\Mobile\Attributes\OnNative;
+use Native\Mobile\Events\Camera\PhotoTaken;
 
-#[On('native:NativePHP\Camera\Events\PhotoTaken')]
-public function handlePhotoTaken($path, $mimeType, $id = null)
+#[OnNative(PhotoTaken::class)]
+public function handlePhotoTaken(string $path)
 {
-    // Handle the photo
+    // Process the captured photo
+    $this->processPhoto($path);
 }
 ```
+
+#### Vue
+
+```js
+import { on, off, Events } from '#nativephp';
+import { ref, onMounted, onUnmounted } from 'vue';
+
+const photoPath = ref('');
+
+const handlePhotoTaken = (payload) => {
+    photoPath.value = payload.path;
+    processPhoto(payload.path);
+};
+
+onMounted(() => {
+    on(Events.Camera.PhotoTaken, handlePhotoTaken);
+});
+
+onUnmounted(() => {
+    off(Events.Camera.PhotoTaken, handlePhotoTaken);
+});
+```
+
+### `VideoRecorded`
+
+Fired when a video is successfully recorded.
+
+**Payload:**
+- `string $path` - File path to the recorded video
+- `string $mimeType` - Video MIME type (default: `'video/mp4'`)
+- `?string $id` - Optional identifier if set via `id()` method
+
+### `VideoCancelled`
+
+Fired when video recording is cancelled by the user.
+
+### `MediaSelected`
+
+Fired when media is selected from the gallery.
+
+```php
+use Native\Mobile\Attributes\OnNative;
+use Native\Mobile\Events\Gallery\MediaSelected;
+
+#[OnNative(MediaSelected::class)]
+public function handleMediaSelected($success, $files, $count)
+{
+    foreach ($files as $file) {
+        $this->processMedia($file);
+    }
+}
+```
+
+## PendingVideoRecorder API
+
+### `maxDuration(int $seconds)`
+
+Set the maximum recording duration in seconds.
+
+### `id(string $id)`
+
+Set a unique identifier for this recording to correlate with events.
+
+### `event(string $eventClass)`
+
+Set a custom event class to dispatch when recording completes.
+
+### `remember()`
+
+Store the recorder's ID in the session for later retrieval.
+
+### `start()`
+
+Explicitly start the video recording.
+
+## Storage Locations
+
+**Photos:**
+- **Android:** App cache directory at `{cache}/captured.jpg`
+- **iOS:** Application Support at `~/Library/Application Support/Photos/captured.jpg`
+
+**Videos:**
+- **Android:** App cache directory at `{cache}/video_{timestamp}.mp4`
+- **iOS:** Application Support at `~/Library/Application Support/Videos/captured_video_{timestamp}.mp4`
+
+## Notes
+
+- **Permissions:** You must enable the `camera` permission in `config/nativephp.php` to use camera features
+- If permission is denied, camera functions will fail silently
+- Camera permission is required for photos, videos, AND QR/barcode scanning
+- File formats: JPEG for photos, MP4 for videos
 
 ## License
 
