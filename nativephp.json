@@ -58,6 +58,7 @@
         "Native\\Mobile\\Events\\Camera\\PhotoCancelled",
         "Native\\Mobile\\Events\\Camera\\VideoRecorded",
         "Native\\Mobile\\Events\\Camera\\VideoCancelled",
-        "Native\\Mobile\\Events\\Camera\\MediaSelected"
+        "Native\\Mobile\\Events\\Gallery\\MediaSelected",
+        "Native\\Mobile\\Events\\Camera\\PermissionDenied"
     ]
 }

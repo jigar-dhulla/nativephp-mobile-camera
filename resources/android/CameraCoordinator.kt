@@ -113,30 +113,27 @@ class CameraCoordinator : Fragment() {
                 pendingCameraOperation = null
                 pendingMaxDuration = null
             } else {
-                val context = requireContext()
-                val operationType = if (pendingCameraOperation == "video") "record videos" else "take photos"
+                // Permission denied - dispatch event to let app handle it
                 Log.e(TAG, "❌ Camera permission denied")
-                Toast.makeText(context, "Camera permission is required to $operationType", Toast.LENGTH_SHORT).show()
 
-                // Fire cancel event
-                when (pendingCameraOperation) {
-                    "photo" -> {
-                        val eventClass = pendingPhotoEvent ?: "NativePHP\\Camera\\Events\\PhotoCancelled"
-                        val payload = JSONObject().apply {
-                            put("cancelled", true)
-                            pendingPhotoId?.let { put("id", it) }
-                        }
-                        dispatchEvent(eventClass, payload.toString())
-                    }
-                    "video" -> {
-                        val eventClass = "NativePHP\\Camera\\Events\\VideoCancelled"
-                        val payload = JSONObject().apply {
-                            put("cancelled", true)
-                            pendingVideoId?.let { put("id", it) }
-                        }
-                        dispatchEvent(eventClass, payload.toString())
-                        isVideoRecording = false
-                    }
+                val action = if (pendingCameraOperation == "video") "video" else "photo"
+                val id = if (pendingCameraOperation == "video") pendingVideoId else pendingPhotoId
+
+                val payload = JSONObject().apply {
+                    put("action", action)
+                    id?.let { put("id", it) }
+                }
+
+                dispatchEvent("Native\\Mobile\\Events\\Camera\\PermissionDenied", payload.toString())
+
+                // Clean up
+                if (pendingCameraOperation == "video") {
+                    isVideoRecording = false
+                    pendingVideoId = null
+                    pendingVideoEvent = null
+                } else {
+                    pendingPhotoId = null
+                    pendingPhotoEvent = null
                 }
 
                 pendingCameraOperation = null
@@ -160,8 +157,8 @@ class CameraCoordinator : Fragment() {
             Log.d(TAG, "📸 cameraLauncher callback triggered. Success: $success")
 
             val context = requireContext()
-            val eventClass = pendingPhotoEvent ?: "NativePHP\\Camera\\Events\\PhotoTaken"
-            val cancelEventClass = "NativePHP\\Camera\\Events\\PhotoCancelled"
+            val eventClass = pendingPhotoEvent ?: "Native\\Mobile\\Events\\Camera\\PhotoTaken"
+            val cancelEventClass = "Native\\Mobile\\Events\\Camera\\PhotoCancelled"
 
             if (success && pendingCameraUri != null) {
                 val dst = File(context.cacheDir, "captured_${System.currentTimeMillis()}.jpg")
@@ -228,8 +225,8 @@ class CameraCoordinator : Fragment() {
             Log.d(TAG, "🎥 videoRecorderLauncher callback triggered. Result code: ${result.resultCode}")
 
             val context = requireContext()
-            val eventClass = pendingVideoEvent ?: "NativePHP\\Camera\\Events\\VideoRecorded"
-            val cancelEventClass = "NativePHP\\Camera\\Events\\VideoCancelled"
+            val eventClass = pendingVideoEvent ?: "Native\\Mobile\\Events\\Camera\\VideoRecorded"
+            val cancelEventClass = "Native\\Mobile\\Events\\Camera\\VideoCancelled"
 
             if (result.resultCode == android.app.Activity.RESULT_OK && pendingVideoUri != null) {
                 try {
@@ -296,7 +293,7 @@ class CameraCoordinator : Fragment() {
             Log.d(TAG, "🔍 Received URI: $uri")
 
             // Use default event if not provided
-            val eventClass = pendingGalleryEvent ?: "NativePHP\\Camera\\Events\\MediaSelected"
+            val eventClass = pendingGalleryEvent ?: "Native\\Mobile\\Events\\Gallery\\MediaSelected"
 
             if (uri != null) {
                 Log.d(TAG, "✅ Single gallery picker - URI received successfully")
@@ -357,7 +354,7 @@ class CameraCoordinator : Fragment() {
                                 put("count", 0)
                                 put("error", "Failed to process file: ${e.message}")
                             }
-                            dispatchEvent("NativePHP\\Camera\\Events\\MediaSelected", payload.toString())
+                            dispatchEvent("Native\\Mobile\\Events\\Gallery\\MediaSelected", payload.toString())
                         }
                     }
                 }
@@ -396,7 +393,7 @@ class CameraCoordinator : Fragment() {
             Log.d(TAG, "📸 Multiple gallery picker callback triggered with ${uris.size} items")
 
             // Use default event if not provided
-            val eventClass = pendingGalleryEvent ?: "NativePHP\\Camera\\Events\\MediaSelected"
+            val eventClass = pendingGalleryEvent ?: "Native\\Mobile\\Events\\Gallery\\MediaSelected"
 
             if (uris.isNotEmpty()) {
                 Log.d(TAG, "📁 Processing ${uris.size} files - moving to background thread")

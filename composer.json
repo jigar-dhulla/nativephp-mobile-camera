@@ -1,5 +1,6 @@
 {
     "name": "nativephp/mobile-camera",
+    "version": "0.0.2",
     "description": "Camera plugin for NativePHP Mobile (Photo capture, Video recording, Gallery picker)",
     "type": "nativephp-plugin",
     "license": "MIT",

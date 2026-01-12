@@ -15,12 +15,13 @@ enum CameraFunctions {
     /// Capture a photo with the device camera
     /// Parameters:
     ///   - id: (optional) string - Optional ID to track this specific photo capture
-    ///   - event: (optional) string - Custom event class to fire (defaults to "NativePHP\Camera\Events\PhotoTaken")
+    ///   - event: (optional) string - Custom event class to fire (defaults to "Native\Mobile\Events\Camera\PhotoTaken")
     /// Returns:
     ///   - (empty map - results are returned via events)
     /// Events:
-    ///   - Fires "NativePHP\Camera\Events\PhotoTaken" (or custom event) when photo is captured
-    ///   - Fires "NativePHP\Camera\Events\PhotoCancelled" (or custom event) when user cancels
+    ///   - Fires "Native\Mobile\Events\Camera\PhotoTaken" (or custom event) when photo is captured
+    ///   - Fires "Native\Mobile\Events\Camera\PhotoCancelled" (or custom event) when user cancels
+    ///   - Fires "Native\Mobile\Events\Camera\PermissionDenied" when camera permission is denied
     class GetPhoto: BridgeFunction {
         func execute(parameters: [String: Any]) throws -> [String: Any] {
             let id = parameters["id"] as? String
@@ -28,6 +29,52 @@ enum CameraFunctions {
 
             print("📸 Capturing photo with id=\(id ?? "nil"), event=\(event ?? "nil")")
 
+            // Helper to fire permission denied event
+            func firePermissionDenied() {
+                let eventClass = "Native\\Mobile\\Events\\Camera\\PermissionDenied"
+                var payload: [String: Any] = ["action": "photo"]
+                if let id = id {
+                    payload["id"] = id
+                }
+                LaravelBridge.shared.send?(eventClass, payload)
+            }
+
+            // Check camera permission status
+            switch AVCaptureDevice.authorizationStatus(for: .video) {
+            case .authorized:
+                // Permission granted, proceed to show camera
+                presentPhotoPicker(id: id, event: event)
+
+            case .notDetermined:
+                // Request permission
+                AVCaptureDevice.requestAccess(for: .video) { granted in
+                    DispatchQueue.main.async {
+                        if granted {
+                            self.presentPhotoPicker(id: id, event: event)
+                        } else {
+                            print("❌ Camera permission denied by user")
+                            firePermissionDenied()
+                        }
+                    }
+                }
+
+            case .denied, .restricted:
+                print("❌ Camera permission denied or restricted")
+                DispatchQueue.main.async {
+                    firePermissionDenied()
+                }
+
+            @unknown default:
+                print("❌ Unknown camera permission status")
+                DispatchQueue.main.async {
+                    firePermissionDenied()
+                }
+            }
+
+            return [:]
+        }
+
+        private func presentPhotoPicker(id: String?, event: String?) {
             DispatchQueue.main.async {
                 // Set id and event on delegate before presenting picker
                 CameraPhotoDelegate.shared.pendingPhotoId = id
@@ -56,8 +103,6 @@ enum CameraFunctions {
                 picker.delegate = CameraPhotoDelegate.shared
                 rootVC.present(picker, animated: true)
             }
-
-            return [:]
         }
     }
 
@@ -69,11 +114,11 @@ enum CameraFunctions {
     ///   - multiple: (optional) boolean - Allow multiple selection (default: false)
     ///   - maxItems: (optional) int - Maximum number of items when multiple=true (default: 10)
     ///   - id: (optional) string - Optional ID to track this operation
-    ///   - event: (optional) string - Custom event class to fire (defaults to "NativePHP\Camera\Events\MediaSelected")
+    ///   - event: (optional) string - Custom event class to fire (defaults to "Native\Mobile\Events\Camera\MediaSelected")
     /// Returns:
     ///   - (empty map - results are returned via events)
     /// Events:
-    ///   - Fires "NativePHP\Camera\Events\MediaSelected" (or custom event) when media is selected or cancelled
+    ///   - Fires "Native\Mobile\Events\Camera\MediaSelected" (or custom event) when media is selected or cancelled
     class PickMedia: BridgeFunction {
         func execute(parameters: [String: Any]) throws -> [String: Any] {
             let mediaType = parameters["mediaType"] as? String ?? "all"
@@ -104,12 +149,13 @@ enum CameraFunctions {
     /// Parameters:
     ///   - maxDuration: (optional) int - Maximum recording duration in seconds
     ///   - id: (optional) string - Optional ID to track this specific video recording
-    ///   - event: (optional) string - Custom event class to fire (defaults to "NativePHP\Camera\Events\VideoRecorded")
+    ///   - event: (optional) string - Custom event class to fire (defaults to "Native\Mobile\Events\Camera\VideoRecorded")
     /// Returns:
     ///   - (empty map - results are returned via events)
     /// Events:
-    ///   - Fires "NativePHP\Camera\Events\VideoRecorded" (or custom event) when video is captured
-    ///   - Fires "NativePHP\Camera\Events\VideoCancelled" (or custom event) when user cancels
+    ///   - Fires "Native\Mobile\Events\Camera\VideoRecorded" (or custom event) when video is captured
+    ///   - Fires "Native\Mobile\Events\Camera\VideoCancelled" (or custom event) when user cancels
+    ///   - Fires "Native\Mobile\Events\Camera\PermissionDenied" when camera permission is denied
     class RecordVideo: BridgeFunction {
         func execute(parameters: [String: Any]) throws -> [String: Any] {
             let maxDuration = parameters["maxDuration"] as? Int
@@ -118,6 +164,52 @@ enum CameraFunctions {
 
             print("🎥 Recording video with maxDuration=\(maxDuration ?? 0), id=\(id ?? "nil"), event=\(event ?? "nil")")
 
+            // Helper to fire permission denied event
+            func firePermissionDenied() {
+                let eventClass = "Native\\Mobile\\Events\\Camera\\PermissionDenied"
+                var payload: [String: Any] = ["action": "video"]
+                if let id = id {
+                    payload["id"] = id
+                }
+                LaravelBridge.shared.send?(eventClass, payload)
+            }
+
+            // Check camera permission status
+            switch AVCaptureDevice.authorizationStatus(for: .video) {
+            case .authorized:
+                // Permission granted, proceed to show camera
+                presentVideoPicker(maxDuration: maxDuration, id: id, event: event)
+
+            case .notDetermined:
+                // Request permission
+                AVCaptureDevice.requestAccess(for: .video) { granted in
+                    DispatchQueue.main.async {
+                        if granted {
+                            self.presentVideoPicker(maxDuration: maxDuration, id: id, event: event)
+                        } else {
+                            print("❌ Camera permission denied by user")
+                            firePermissionDenied()
+                        }
+                    }
+                }
+
+            case .denied, .restricted:
+                print("❌ Camera permission denied or restricted")
+                DispatchQueue.main.async {
+                    firePermissionDenied()
+                }
+
+            @unknown default:
+                print("❌ Unknown camera permission status")
+                DispatchQueue.main.async {
+                    firePermissionDenied()
+                }
+            }
+
+            return [:]
+        }
+
+        private func presentVideoPicker(maxDuration: Int?, id: String?, event: String?) {
             DispatchQueue.main.async {
                 // Set id and event on delegate before presenting picker
                 CameraVideoDelegate.shared.pendingVideoId = id
@@ -125,7 +217,7 @@ enum CameraFunctions {
 
                 // Helper to fire cancel event
                 func fireCancel() {
-                    let cancelEventClass = "NativePHP\\Camera\\Events\\VideoCancelled"
+                    let cancelEventClass = "Native\\Mobile\\Events\\Camera\\VideoCancelled"
                     var payload: [String: Any] = ["cancelled": true]
                     if let id = id {
                         payload["id"] = id
@@ -165,8 +257,6 @@ enum CameraFunctions {
                 picker.delegate = CameraVideoDelegate.shared
                 rootVC.present(picker, animated: true)
             }
-
-            return [:]
         }
     }
 }
@@ -187,8 +277,8 @@ final class CameraVideoDelegate: NSObject, UIImagePickerControllerDelegate, UINa
         picker.dismiss(animated: true)
 
         // Use default events if not provided
-        let eventClass = pendingVideoEvent ?? "NativePHP\\Camera\\Events\\VideoRecorded"
-        let cancelEventClass = "NativePHP\\Camera\\Events\\VideoCancelled"
+        let eventClass = pendingVideoEvent ?? "Native\\Mobile\\Events\\Camera\\VideoRecorded"
+        let cancelEventClass = "Native\\Mobile\\Events\\Camera\\VideoCancelled"
 
         // Get the video URL
         guard let videoURL = info[.mediaURL] as? URL else {
@@ -274,7 +364,7 @@ final class CameraVideoDelegate: NSObject, UIImagePickerControllerDelegate, UINa
         print("⚠️ Video recording cancelled")
 
         // Always use the default cancel event
-        let cancelEventClass = "NativePHP\\Camera\\Events\\VideoCancelled"
+        let cancelEventClass = "Native\\Mobile\\Events\\Camera\\VideoCancelled"
 
         var payload: [String: Any] = ["cancelled": true]
         if let id = pendingVideoId {
@@ -304,8 +394,8 @@ final class CameraPhotoDelegate: NSObject, UIImagePickerControllerDelegate, UINa
         picker.dismiss(animated: true)
 
         // Use default events if not provided
-        let eventClass = pendingPhotoEvent ?? "NativePHP\\Camera\\Events\\PhotoTaken"
-        let cancelEventClass = "NativePHP\\Camera\\Events\\PhotoCancelled"
+        let eventClass = pendingPhotoEvent ?? "Native\\Mobile\\Events\\Camera\\PhotoTaken"
+        let cancelEventClass = "Native\\Mobile\\Events\\Camera\\PhotoCancelled"
 
         // Get the image
         guard let image = info[.originalImage] as? UIImage else {
@@ -395,7 +485,7 @@ final class CameraPhotoDelegate: NSObject, UIImagePickerControllerDelegate, UINa
         print("⚠️ Photo capture cancelled")
 
         // Always use the default cancel event
-        let cancelEventClass = "NativePHP\\Camera\\Events\\PhotoCancelled"
+        let cancelEventClass = "Native\\Mobile\\Events\\Camera\\PhotoCancelled"
 
         var payload: [String: Any] = ["cancelled": true]
         if let id = pendingPhotoId {
@@ -465,7 +555,7 @@ extension CameraGalleryManager: PHPickerViewControllerDelegate {
         picker.dismiss(animated: true)
 
         // Use default event if not provided
-        let eventClass = pendingGalleryEvent ?? "NativePHP\\Camera\\Events\\MediaSelected"
+        let eventClass = pendingGalleryEvent ?? "Native\\Mobile\\Events\\Gallery\\MediaSelected"
 
         guard !results.isEmpty else {
             // User cancelled
@@ -495,7 +585,7 @@ extension CameraGalleryManager: PHPickerViewControllerDelegate {
         var processedFiles: [[String: Any]] = []
 
         // Capture event class and id before async processing
-        let eventClass = pendingGalleryEvent ?? "NativePHP\\Camera\\Events\\MediaSelected"
+        let eventClass = pendingGalleryEvent ?? "Native\\Mobile\\Events\\Gallery\\MediaSelected"
         let capturedId = pendingGalleryId
 
         for (index, result) in results.enumerated() {
