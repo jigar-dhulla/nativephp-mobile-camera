@@ -23,6 +23,7 @@
     ],
 
     "android": {
+        "min_version": 33,
         "permissions": [
             "android.permission.CAMERA",
             "android.permission.RECORD_AUDIO",
@@ -42,6 +43,7 @@
     },
 
     "ios": {
+        "min_version": "18.2",
         "info_plist": {
             "NSCameraUsageDescription": "This app requires camera access to take photos and videos.",
             "NSMicrophoneUsageDescription": "This app requires microphone access to record video with audio.",
