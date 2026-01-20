@@ -173,7 +173,3 @@ Explicitly start the video recording.
 - If permission is denied, camera functions will fail silently
 - Camera permission is required for photos, videos, AND QR/barcode scanning
 - File formats: JPEG for photos, MP4 for videos
-
-## License
-
-MIT
