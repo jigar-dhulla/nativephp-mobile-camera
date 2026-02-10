@@ -43,21 +43,21 @@ Camera::pickImages('all', true);      // Any media type
 ### JavaScript (Vue/React/Inertia)
 
 ```js
-import { camera, on, off, Events } from '#nativephp';
+import { Camera, On, Off, Events } from '#nativephp';
 
 // Take a photo
-await camera.getPhoto();
+await Camera.getPhoto();
 
 // With identifier for tracking
-await camera.getPhoto()
+await Camera.getPhoto()
     .id('profile-pic');
 
 // Record video
-await camera.recordVideo()
+await Camera.recordVideo()
     .maxDuration(60);
 
 // Pick images
-await camera.pickImages()
+await Camera.pickImages()
     .images()
     .multiple()
     .maxItems(5);
@@ -86,7 +86,7 @@ public function handlePhotoTaken(string $path)
 #### Vue
 
 ```js
-import { on, off, Events } from '#nativephp';
+import { On, Off, Events } from '#nativephp';
 import { ref, onMounted, onUnmounted } from 'vue';
 
 const photoPath = ref('');
@@ -97,11 +97,11 @@ const handlePhotoTaken = (payload) => {
 };
 
 onMounted(() => {
-    on(Events.Camera.PhotoTaken, handlePhotoTaken);
+    On(Events.Camera.PhotoTaken, handlePhotoTaken);
 });
 
 onUnmounted(() => {
-    off(Events.Camera.PhotoTaken, handlePhotoTaken);
+    Off(Events.Camera.PhotoTaken, handlePhotoTaken);
 });
 ```
 
